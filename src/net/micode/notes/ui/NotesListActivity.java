@@ -119,6 +119,8 @@ public class NotesListActivity extends Activity implements OnClickListener, OnIt
 
     private ModeCallback mModeCallBack;
 
+    public static int secret_mode = 0;
+
     private static final String TAG = "NotesListActivity";
 
     public static final int NOTES_LISTVIEW_SCROLL_RATE = 30;
@@ -763,6 +765,10 @@ public class NotesListActivity extends Activity implements OnClickListener, OnIt
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
         menu.clear();
+        if(secret_mode == 1)
+            menu.findItem(R.id.menu_secret).setVisible(false);
+        else
+            menu.findItem(R.id.menu_quit_secret).setVisible(false);
         if (mState == ListEditState.NOTE_LIST) {
             getMenuInflater().inflate(R.menu.note_list, menu);
             // set sync or sync_cancel
@@ -812,6 +818,49 @@ public class NotesListActivity extends Activity implements OnClickListener, OnIt
             case R.id.menu_search:
                 onSearchRequested();
                 break;
+
+            case R.id.menu_secret: {
+                AlertDialog.Builder dialog = new AlertDialog.Builder(NotesListActivity.this);
+                dialog.setTitle("提醒");
+                dialog.setMessage("确认进入私密模式吗？");
+                dialog.setCancelable(false);
+                dialog.setPositiveButton("确认", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        secret_mode = 1;
+                        startAsyncNotesListQuery();
+                        Toast.makeText(NotesListActivity.this,"已进入私密模式",Toast.LENGTH_SHORT).show();
+                    }
+                });
+                dialog.setNegativeButton("取消", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which){}
+                });
+                dialog.show();
+                break;
+            }
+            case R.id.menu_quit_secret:{
+
+                AlertDialog.Builder dialog = new AlertDialog.Builder(NotesListActivity.this);
+                dialog.setTitle("提醒");
+                dialog.setMessage("确认退出私密模式吗？");
+                dialog.setCancelable(false);
+                dialog.setPositiveButton("确认", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        secret_mode = 0;
+                        startAsyncNotesListQuery();
+                        Toast.makeText(NotesListActivity.this,"已退出私密模式",Toast.LENGTH_SHORT).show();
+                    }
+                });
+                dialog.setNegativeButton("取消", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which){}
+                });
+                dialog.show();
+                break;
+            }
+
             default:
                 break;
         }
@@ -921,6 +970,29 @@ public class NotesListActivity extends Activity implements OnClickListener, OnIt
         String selection = NoteColumns.TYPE + "=? AND " + NoteColumns.PARENT_ID + "<>? AND " + NoteColumns.ID + "<>?";
         selection = (mState == ListEditState.NOTE_LIST) ? selection:
             "(" + selection + ") OR (" + NoteColumns.ID + "=" + Notes.ID_ROOT_FOLDER + ")";
+
+        if(secret_mode == 0) {
+            mBackgroundQueryHandler.startQuery(FOLDER_NOTE_LIST_QUERY_TOKEN, null,
+                    Notes.CONTENT_NOTE_URI, NoteItemData.PROJECTION, selection, new String[]{
+                            String.valueOf(mCurrentFolderId)
+                    }, NoteColumns.TYPE + " DESC," + NoteColumns.MODIFIED_DATE + " DESC");
+        }
+        else{
+            String NoteStr = "私密模式不可见";
+            String [] PROJECTION = new String [] {
+                    NoteColumns.ID,
+                    NoteColumns.ALERTED_DATE,
+                    NoteColumns.BG_COLOR_ID,
+                    NoteColumns.CREATED_DATE,
+                    NoteColumns.HAS_ATTACHMENT,
+                    NoteColumns.MODIFIED_DATE,
+                    NoteColumns.NOTES_COUNT,
+                    NoteColumns.PARENT_ID,
+                    NoteStr,
+                    NoteColumns.TYPE,
+                    NoteColumns.WIDGET_ID,
+                    NoteColumns.WIDGET_TYPE,
+            };
 
         mBackgroundQueryHandler.startQuery(FOLDER_LIST_QUERY_TOKEN,
                 null,
