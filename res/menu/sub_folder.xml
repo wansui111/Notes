@@ -21,4 +21,12 @@
     <item
         android:id="@+id/menu_new_note"
         android:title="@string/notelist_menu_new"/>
+
+    <item
+            android:id="@+id/menu_early_notes"
+            android:title="@string/menu_early_notes"/>
+
+    <item
+            android:id="@+id/menu_quit_secret"
+            android:title="@string/menu_latest_notes"/>
 </menu>

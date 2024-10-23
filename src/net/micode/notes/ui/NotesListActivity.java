@@ -123,6 +123,9 @@ public class NotesListActivity extends Activity implements OnClickListener, OnIt
 
     public static final int NOTES_LISTVIEW_SCROLL_RATE = 30;
 
+    //当notes_mode=0时，便签列表为正常排序，为1时，是倒序排序。
+    public static int notes_mode=0;
+
     private NoteItemData mFocusNoteDataItem;
 
     private static final String NORMAL_SELECTION = NoteColumns.PARENT_ID + "=?";
@@ -763,6 +766,12 @@ public class NotesListActivity extends Activity implements OnClickListener, OnIt
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
         menu.clear();
+
+        if(notes_mode == 0)
+            menu.findItem(R.id.menu_latest_notes).setVisible(false);
+        else
+            menu.findItem(R.id.menu_early_notes).setVisible(false);
+
         if (mState == ListEditState.NOTE_LIST) {
             getMenuInflater().inflate(R.menu.note_list, menu);
             // set sync or sync_cancel
@@ -812,6 +821,16 @@ public class NotesListActivity extends Activity implements OnClickListener, OnIt
             case R.id.menu_search:
                 onSearchRequested();
                 break;
+
+            case R.id.menu_early_notes: {
+                notes_mode = 1;
+                startAsyncNotesListQuery();
+            }
+            case R.id.menu_latest_notes:{
+                notes_mode = 0;
+                startAsyncNotesListQuery();
+            }
+
             default:
                 break;
         }
@@ -922,17 +941,35 @@ public class NotesListActivity extends Activity implements OnClickListener, OnIt
         selection = (mState == ListEditState.NOTE_LIST) ? selection:
             "(" + selection + ") OR (" + NoteColumns.ID + "=" + Notes.ID_ROOT_FOLDER + ")";
 
-        mBackgroundQueryHandler.startQuery(FOLDER_LIST_QUERY_TOKEN,
-                null,
-                Notes.CONTENT_NOTE_URI,
-                FoldersListAdapter.PROJECTION,
-                selection,
-                new String[] {
-                        String.valueOf(Notes.TYPE_FOLDER),
-                        String.valueOf(Notes.ID_TRASH_FOLER),
-                        String.valueOf(mCurrentFolderId)
-                },
-                NoteColumns.MODIFIED_DATE + " DESC");
+        if(notes_mode == 0){
+            mBackgroundQueryHandler.startQuery(
+                    FOLDER_LIST_QUERY_TOKEN,
+                    null,
+                    Notes.CONTENT_NOTE_URI,
+                    FoldersListAdapter.PROJECTION,
+                    selection,
+                    new String[] {
+                            String.valueOf(Notes.TYPE_FOLDER),
+                            String.valueOf(Notes.ID_TRASH_FOLER),
+                            String.valueOf(mCurrentFolderId)
+                    },
+                    NoteColumns.MODIFIED_DATE + " DESC");
+        }
+        else {
+            mBackgroundQueryHandler.startQuery(
+                    FOLDER_LIST_QUERY_TOKEN,
+                    null,
+                    Notes.CONTENT_NOTE_URI,
+                    FoldersListAdapter.PROJECTION,
+                    selection,
+                    new String[] {
+                            String.valueOf(Notes.TYPE_FOLDER),
+                            String.valueOf(Notes.ID_TRASH_FOLER),
+                            String.valueOf(mCurrentFolderId)
+                    },
+                    NoteColumns.CREATED_DATE + " ASC");
+            )
+        }
     }
 
     public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
